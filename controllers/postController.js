@@ -1,6 +1,4 @@
-const Post = require("../models/post");
 const User = require("../models/user");
-const router = express.Router();
 
 let posts = [
   {
@@ -19,52 +17,71 @@ let posts = [
   },
 ];
 
-// GET all posts
-router.get("/", (req, res) => {
+// Get all posts
+const getAllPosts = (req, res) => {
   res.json(posts);
-});
+};
 
 // Get a specific post by id
-router.get("/:id", (req, res) => {
-  const post = posts.find((post) => post.id === id);
+const getPostById = (req, res) => {
+  const postId = parseInt(req.params.id);
+  const post = posts.find((post) => post.id === postId);
   if (!post) {
     return res.status(404).json({ message: "Post not found" });
   }
   res.json(post);
-});
+};
 
-// POST create a new post
-router.post("/", (req, res) => {
+// Create a new post
+const createPost = (req, res) => {
+  const { title, timestamp, published, userId } = req.body;
   const newPost = {
     id: posts.length + 1,
-    title: title.req.body,
-    timestamp: new Date(),
-    published: true,
-    user: new User(),
+    title,
+    timestamp: timestamp ? new Date(timestamp) : new Date(),
+    published: published !== undefined ? published : true,
+    user: userId,
   };
   posts.push(newPost);
   res.status(201).json(newPost);
-});
+};
 
-// PUT update post by id
-router.put("/:id", (req, res) => {
-  const post = posts.find((post) => post.id === id);
-  if (!post) {
+// Update a post by id
+const updatePost = (req, res) => {
+  const postId = parseInt(req.params.id);
+  const { title, timestamp, published, userId } = req.body;
+  const index = posts.findIndex((post) => post.id === postId);
+  if (index === -1) {
     return res.status(404).json({ message: "Post not found" });
   }
-  post.title = title;
-  post.content = content;
-  res.json(post);
-});
+  posts[index].title = title;
+  if (timestamp) {
+    posts[index].timestamp = new Date(timestamp);
+  }
+  if (published !== undefined) {
+    posts[index].published = published;
+  }
+  if (userId) {
+    posts[index].user = userId;
+  }
+  res.json(posts[index]);
+};
 
-// DELETE post by id
-router.delete("/:id", (req, res) => {
-  const index = posts.findIndex((post) => post.id === id);
+// Delete a post by id
+const deletePost = (req, res) => {
+  const postId = parseInt(req.params.id);
+  const index = posts.findIndex((post) => post.id === postId);
   if (!index) {
     return res.status(404).json({ message: "Post not found" });
   }
   posts.splice(index, 1);
   res.sendStatus(204);
-});
+};
 
-module.exports = router;
+module.exports = {
+  getAllPosts,
+  getPostById,
+  createPost,
+  updatePost,
+  deletePost,
+};
