@@ -7,4 +7,4 @@ With this project I have practiced:
   - facilitate clear API documentation by grouping endpoints logically within folders
   - great collaboration in a team
 
-![alt text](image.png)
+![alt text](image-1.png)
