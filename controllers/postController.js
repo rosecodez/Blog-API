@@ -24,7 +24,7 @@ const getAllPosts = (req, res) => {
 
 // Get a specific post by id
 const getPostById = (req, res) => {
-  const postId = parseInt(req.params.id);
+  const postId = parseInt(req.params.postId);
   const post = posts.find((post) => post.id === postId);
   if (!post) {
     return res.status(404).json({ message: "Post not found" });
@@ -48,7 +48,7 @@ const createPost = (req, res) => {
 
 // Update a post by id
 const updatePost = (req, res) => {
-  const postId = parseInt(req.params.id);
+  const postId = parseInt(req.params.postId);
   const { title, timestamp, published, userId } = req.body;
   const index = posts.findIndex((post) => post.id === postId);
   if (index === -1) {
@@ -69,9 +69,9 @@ const updatePost = (req, res) => {
 
 // Delete a post by id
 const deletePost = (req, res) => {
-  const postId = parseInt(req.params.id);
+  const postId = parseInt(req.params.postId);
   const index = posts.findIndex((post) => post.id === postId);
-  if (!index) {
+  if (index === -1) {
     return res.status(404).json({ message: "Post not found" });
   }
   posts.splice(index, 1);
