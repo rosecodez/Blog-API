@@ -1,78 +1,127 @@
 const User = require("../models/user");
+const asyncHandler = require("express-async-handler");
+const { body, validationResult } = require("express-validator");
+const bcrypt = require("bcrypt");
 
-let users = [
-  {
-    id: 1,
-    username: "author",
-    author: true,
-  },
-  {
-    id: 2,
-    username: "malusdarkblade",
-    author: false,
-  },
-];
+async function addUsers() {
+  let users = [
+    {
+      username: "author",
+      password: await bcrypt.hash("password", 10),
+      author: true,
+    },
+    {
+      username: "malusdarkblade",
+      password: await bcrypt.hash("password", 10),
+      author: false,
+    },
+  ];
+
+  for (let user of users) {
+    try {
+      const existingUser = await User.findOne({ username: user.username });
+      if (!existingUser) {
+        const newUser = new User(user);
+        await newUser.save();
+        console.log(`User ${newUser.username} added`);
+      }
+    } catch (err) {
+      console.error(`Error adding user ${user.username}:`, err);
+    }
+  }
+}
 
 // Get all users
-const getAllUsers = (req, res) => {
-  res.json(users);
+const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Get a specific user by id
-const getUserById = (req, res) => {
-  const userId = 2;
-
-  const user = users.find((user) => user.id === userId);
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+const getUserById = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (err) {
+    next(err);
   }
-
-  res.json(user);
 };
 
 // Create a new user
-const createUser = (req, res) => {
-  const { title, timestamp, published, userId } = req.body;
-  const newUser = {
-    id: users.length + 1,
-    title,
-    timestamp: timestamp ? new Date(timestamp) : new Date(),
-    published: published !== undefined ? published : true,
-    user: userId,
-  };
-  users.push(newUser);
-  res.status(201).json(newUser);
+const createUser = async (req, res, next) => {
+  const { username, password, author } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: "Username already taken" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      username,
+      password: hashedPassword,
+      author,
+    });
+
+    await user.save();
+    res.status(201).json(user);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Update a user by id
-const updateUser = (req, res) => {
-  const userId = parseInt(req.params.userId);
-  const { username } = req.body;
+const updateUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-  const index = users.findIndex((user) => user.id === userId);
+    const { username, password, author } = req.body;
 
-  if (index === -1) {
-    return res.status(404).json({ message: "User not found" });
+    if (username) {
+      user.username = username;
+    }
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+    if (author !== undefined) {
+      user.author = author;
+    }
+
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    next(err);
   }
-
-  users[index].username = username;
-
-  res.json(users[index]);
 };
 
 // Delete a user by id
-const deleteUser = (req, res) => {
-  const userId = parseInt(req.params.userId);
-  const index = users.findIndex((user) => user.id === userId);
-  if (index === -1) {
-    return res.status(404).json({ message: "user not found" });
+const deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await user.remove();
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
   }
-  users.splice(index, 1);
-  res.sendStatus(204);
 };
 
 module.exports = {
+  addUsers,
   getAllUsers,
   getUserById,
   createUser,

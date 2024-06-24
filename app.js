@@ -6,6 +6,8 @@ const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const mongoose = require("mongoose");
 const passport = require("passport");
+const { addUsers } = require("./controllers/userController");
+
 require("dotenv").config();
 
 const indexRouter = require("./routes/index");
@@ -25,8 +27,9 @@ mongoose.set("strictQuery", false);
 const mongoDB = process.env.MONGODB_URI;
 mongoose
   .connect(mongoDB)
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
+    await addUsers();
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err);
