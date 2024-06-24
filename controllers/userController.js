@@ -44,7 +44,7 @@ const getAllUsers = async (req, res, next) => {
 // Get a specific user by id
 const getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.userId);
+    const user = await User.findById(req.params._id);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -80,24 +80,18 @@ const createUser = async (req, res, next) => {
 
 // Update a user by id
 const updateUser = async (req, res, next) => {
+  const { username, password, author } = req.body;
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const { username, password, author } = req.body;
-
-    if (username) {
-      user.username = username;
-    }
+    user.username = username;
     if (password) {
       user.password = await bcrypt.hash(password, 10);
     }
-    if (author !== undefined) {
-      user.author = author;
-    }
-
+    user.author = author;
     await user.save();
     res.json(user);
   } catch (err) {
