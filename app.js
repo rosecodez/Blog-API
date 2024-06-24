@@ -8,7 +8,7 @@ const mongoose = require("mongoose");
 const passport = require("passport");
 const { addUsers } = require("./controllers/userController");
 const { addComments } = require("./controllers/commentController");
-
+const { addPosts } = require("./controllers/postController");
 require("dotenv").config();
 
 const indexRouter = require("./routes/index");
@@ -32,6 +32,7 @@ mongoose
     console.log("Connected to MongoDB");
     await addUsers();
     await addComments();
+    await addPosts();
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err);

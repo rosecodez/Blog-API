@@ -1,84 +1,141 @@
 const User = require("../models/user");
+const asyncHandler = require("express-async-handler");
+const { body, validationResult } = require("express-validator");
+const Post = require("../models/post");
 
-let posts = [
-  {
-    id: 1,
-    title: "How I built my first website",
-    timestamp: new Date(),
-    published: true,
-    user: new User(),
-  },
-  {
-    id: 2,
-    title: "How I started coding",
-    timestamp: new Date(),
-    published: true,
-    user: new User(),
-  },
-];
+const addPosts = async () => {
+  try {
+    let posts = [
+      {
+        id: 1,
+        title: "How I built my first website",
+        text: "It was a great experience......",
+        timestamp: new Date(),
+        published: true,
+        userId: "6679b6dd5b9e70e350d8a210",
+      },
+      {
+        id: 2,
+        title: "How I started coding",
+        text: "I found about The Odin Project......",
+        timestamp: new Date(),
+        published: true,
+        userId: "6679b6dd5b9e70e350d8a210",
+      },
+    ];
+
+    for (let post of posts) {
+      const existingPost = await Post.findOne({ title: post.title });
+      if (!existingPost) {
+        const user = await User.findById(post.userId);
+        if (!user) {
+          console.error(`User not found for post: ${post.title}`);
+        }
+        const newPost = new Post({
+          title: post.title,
+          text: post.text,
+          timestamp: post.timestamp,
+          published: post.published,
+          user: user._id,
+        });
+
+        await newPost.save();
+        console.log(`Post "${newPost.title}" added`);
+      }
+    }
+  } catch (err) {
+    console.error("Error adding posts:", err);
+  }
+};
 
 // Get all posts
-const getAllPosts = (req, res) => {
-  res.json(posts);
+const getAllPosts = async (req, res) => {
+  try {
+    const posts = await Post.find();
+    res.json(posts);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Get a specific post by id
-const getPostById = (req, res) => {
-  const postId = parseInt(req.params.postId);
-  const post = posts.find((post) => post.id === postId);
-  if (!post) {
-    return res.status(404).json({ message: "Post not found" });
+const getPostById = async (req, res, next) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "post not found" });
+    }
+    res.json(post);
+  } catch (err) {
+    next(err);
   }
-  res.json(post);
 };
 
 // Create a new post
-const createPost = (req, res) => {
-  const { title, timestamp, published, userId } = req.body;
-  const newPost = {
-    id: posts.length + 1,
-    title,
-    timestamp: timestamp ? new Date(timestamp) : new Date(),
-    published: published !== undefined ? published : true,
-    user: userId,
-  };
-  posts.push(newPost);
-  res.status(201).json(newPost);
+const createPost = async (req, res, next) => {
+  try {
+    const existingPost = await Post.findOne({ text });
+    if (existingPost) {
+      return res.status(400).json({ message: "Post already exists" });
+    }
+
+    const user = await User.findById(req.session.passport.user);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newPost = new Post({
+      title: req.body.title,
+      text: req.body.text,
+      timestamp: new Date(),
+      published: req.body.published,
+      user: user.userId,
+    });
+
+    await newPost.save();
+    res.status(201).json(newPost);
+  } catch (err) {
+    next(err);
+  }
 };
 
 // Update a post by id
-const updatePost = (req, res) => {
-  const postId = parseInt(req.params.postId);
-  const { title, timestamp, published, userId } = req.body;
-  const index = posts.findIndex((post) => post.id === postId);
-  if (index === -1) {
-    return res.status(404).json({ message: "Post not found" });
+const updatePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "post not found" });
+    }
+    post.title = req.body.title;
+    post.text = req.body.text;
+    post.timestamp = new Date();
+    post.published = req.body.published;
+    post.user = req.session.passport.user;
+
+    await post.save();
+
+    res.json(post);
+  } catch (err) {
+    next(err);
   }
-  posts[index].title = title;
-  if (timestamp) {
-    posts[index].timestamp = new Date(timestamp);
-  }
-  if (published !== undefined) {
-    posts[index].published = published;
-  }
-  if (userId) {
-    posts[index].user = userId;
-  }
-  res.json(posts[index]);
 };
 
 // Delete a post by id
-const deletePost = (req, res) => {
-  const postId = parseInt(req.params.postId);
-  const index = posts.findIndex((post) => post.id === postId);
-  if (index === -1) {
-    return res.status(404).json({ message: "Post not found" });
+const deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.postId);
+    if (!post) {
+      return res.status(404).json({ message: "post not found" });
+    }
+    await post.remove();
+    res.sendStatus(204);
+  } catch (err) {
+    next(err);
   }
-  posts.splice(index, 1);
-  res.sendStatus(204);
 };
 
 module.exports = {
+  addPosts,
   getAllPosts,
   getPostById,
   createPost,
