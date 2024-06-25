@@ -31,6 +31,7 @@ const addPosts = async () => {
         if (!user) {
           console.error(`User not found for post: ${post.title}`);
         }
+
         const newPost = new Post({
           title: post.title,
           text: post.text,
@@ -63,7 +64,7 @@ const getPostById = async (req, res, next) => {
   try {
     const post = await Post.findById(req.params.postId);
     if (!post) {
-      return res.status(404).json({ message: "post not found" });
+      return res.status(404).json({ message: "Post not found" });
     }
     res.json(post);
   } catch (err) {
@@ -74,43 +75,48 @@ const getPostById = async (req, res, next) => {
 // Create a new post
 const createPost = async (req, res, next) => {
   try {
+    const { title, text } = req.body;
     const existingPost = await Post.findOne({ text });
+
     if (existingPost) {
       return res.status(400).json({ message: "Post already exists" });
     }
 
-    const user = await User.findById(req.session.passport.user);
+    const user = await User.findById("6679b6dd5b9e70e350d8a210");
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     const newPost = new Post({
-      title: req.body.title,
-      text: req.body.text,
+      title: "How i deployed my first server",
+      text: "draft",
       timestamp: new Date(),
-      published: req.body.published,
-      user: user.userId,
+      published: true,
+      user: user._id,
     });
 
     await newPost.save();
     res.status(201).json(newPost);
   } catch (err) {
+    console.error("Error creating post:", err);
     next(err);
   }
 };
 
 // Update a post by id
-const updatePost = async (req, res) => {
+const updatePost = async (req, res, next) => {
   try {
-    const post = await Post.findById(req.params.postId);
+    const post = await Post.findById("667b43239f6f4fcf7c2775c2");
     if (!post) {
       return res.status(404).json({ message: "post not found" });
     }
-    post.title = req.body.title;
-    post.text = req.body.text;
+    post.title = post.title;
+    post.text =
+      "Deploying my first server was an exhilarating experience. It was more than just writing code—it was about bringing my application to life and making it accessible to anyone with an internet connection. Here is a detailed account of how I did it, including the challenges I faced and the lessons I learned.The journey began with setting up my local development environment. I needed Node.js and npm (Node Package Manager) since my server was going to be built with Node.js. Downloading and installing Node.js was straightforward, thanks to the clear instructions on the official website. Once installed, verifying the installation with a couple of simple terminal commands gave me the confidence that everything was set up correctly.With the environment ready, I moved on to writing the server code. I chose the Express framework for its simplicity and efficiency. Express allowed me to create a basic server that could handle HTTP requests and responses. Writing the code was fun, and running the server locally to see `Hello, world!` displayed in my browser was a moment of pure joy. If you are thinking about deploying your first server, I encourage you to dive in. The process might seem daunting at first, but the rewards are well worth the effort. Happy coding!";
     post.timestamp = new Date();
     post.published = req.body.published;
-    post.user = req.session.passport.user;
+    post.user = post.user;
 
     await post.save();
 
