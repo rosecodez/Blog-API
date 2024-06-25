@@ -44,7 +44,7 @@ const getAllUsers = async (req, res, next) => {
 // Get a specific user by id
 const getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params._id);
+    const user = await User.findById(req.params.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -56,23 +56,18 @@ const getUserById = async (req, res, next) => {
 
 // Create a new user
 const createUser = async (req, res, next) => {
-  const { username, password, author } = req.body;
-
   try {
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ message: "Username already taken" });
-    }
+    const hashedPassword = await bcrypt.hash("securepassword123", 10);
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({
-      username,
+    const newUser = new User({
+      username: "tyrionlannister",
       password: hashedPassword,
-      author,
+      author: false,
     });
 
-    await user.save();
-    res.status(201).json(user);
+    await newUser.save();
+
+    res.status(201).json(newUser);
   } catch (err) {
     next(err);
   }
@@ -80,18 +75,14 @@ const createUser = async (req, res, next) => {
 
 // Update a user by id
 const updateUser = async (req, res, next) => {
-  const { username, password, author } = req.body;
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.username = username;
-    if (password) {
-      user.password = await bcrypt.hash(password, 10);
-    }
-    user.author = author;
+    user.username = "tyrion";
+    user.author = false;
     await user.save();
     res.json(user);
   } catch (err) {
@@ -107,7 +98,7 @@ const deleteUser = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    await user.remove();
+    await user.deleteOne();
     res.sendStatus(204);
   } catch (err) {
     next(err);
