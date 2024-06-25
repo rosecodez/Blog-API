@@ -15,6 +15,6 @@ router.post("/createPost", postController.createPost);
 router.put("/:postId", postController.updatePost);
 
 // DELETE a post by id
-router.delete("/:postId", postController.deletePost);
+router.delete("/delete/:postId", postController.deletePost);
 
 module.exports = router;

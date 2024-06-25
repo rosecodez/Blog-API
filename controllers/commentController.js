@@ -67,13 +67,13 @@ const createComment = async (req, res, next) => {
       return res.status(400).json({ message: "Comment already exists" });
     }
 
-    const user = await User.findById(req.session.passport.user);
+    const user = await User.findById("6679b6dd5b9e70e350d8a210");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     const newComment = new Comment({
-      text,
+      text: "That's really interesting. nice job",
       timestamp: new Date(),
       user: user._id,
       postId: req.params.postId,
@@ -94,9 +94,9 @@ const updateComment = async (req, res, next) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    comment.text = req.body.text;
+    comment.text = "hmm";
     comment.timestamp = new Date();
-    comment.user = req.session.passport.user;
+    comment.user = comment.user;
 
     await comment.save();
 
@@ -114,7 +114,7 @@ const deleteComment = async (req, res, next) => {
       return res.status(404).json({ message: "Comment not found" });
     }
 
-    await comment.remove();
+    await comment.deleteOne();
     res.sendStatus(204);
   } catch (err) {
     next(err);
