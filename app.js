@@ -10,6 +10,7 @@ const passport = require("passport");
 const { addUsers } = require("./controllers/userController");
 const { addComments } = require("./controllers/commentController");
 const { addPosts } = require("./controllers/postController");
+const User = require("./models/user");
 
 require("dotenv").config();
 
@@ -20,18 +21,10 @@ const commentsRouter = require("./routes/commentsRouter");
 
 const app = express();
 
-app.use(cors());
-app.use(logger("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    saveUninitialized: true,
-  })
-);
+app.use((req, res, next) => {
+  res.locals.user = req.user;
+  next();
+});
 
 // view engine setup
 app.set("views", path.join(__dirname, "views"));
@@ -51,12 +44,26 @@ mongoose
     console.error("MongoDB connection error:", err);
   });
 
+app.use(cors());
+app.use(logger("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    saveUninitialized: true,
+  })
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/posts", postsRouter);
 app.use("/posts", commentsRouter);
-app.use(passport.initialize());
-app.use(passport.session());
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

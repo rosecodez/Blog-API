@@ -4,7 +4,6 @@ const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
-const mongoose = require("mongoose");
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -35,9 +34,12 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await User.findById(id);
+    if (!user) {
+      return done(new Error("User not found"));
+    }
     done(null, user);
   } catch (err) {
-    done(err);
+    done(err); // Pass the error to the done callback
   }
 });
 
@@ -137,7 +139,7 @@ const signupUser = asyncHandler(async (req, res, next) => {
 const signupUserPost = [
   body("username", "Username must be specified and at least 6 characters long")
     .trim()
-    .isLength({ min: 9 })
+    .isLength({ min: 6 })
     .escape(),
   body("password", "Password must be specified and at least 10 characters long")
     .trim()
@@ -147,7 +149,7 @@ const signupUserPost = [
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).render("signup", {
+      return res.status(400).render("signup-form", {
         errors: errors.array(),
         user: req.body,
       });
@@ -176,12 +178,13 @@ const signupUserPost = [
 ];
 
 const loginUser = asyncHandler(async (req, res) => {
-  res.render("login-form");
+  console.log("Current user:", req.user);
+  res.render("login-form", { user: req.user });
 });
 
 const loginUserPost = [
   passport.authenticate("local", {
-    successRedirect: "/",
+    successRedirect: "/users/user-details",
     failureRedirect: "/users/login",
   }),
 ];
@@ -195,6 +198,14 @@ const logoutUser = asyncHandler(async (req, res, next) => {
   });
 });
 
+const userDetails = asyncHandler(async (req, res, next) => {
+  if (req.isAuthenticated()) {
+    res.render("user-details", { user: req.user });
+  } else {
+    res.redirect("/users/login");
+  }
+});
+
 module.exports = {
   addUsers,
   getAllUsers,
@@ -206,4 +217,5 @@ module.exports = {
   loginUser,
   loginUserPost,
   logoutUser,
+  userDetails,
 };
