@@ -1,0 +1,21 @@
+extends layout
+
+block content
+  h2 Log In
+  h6 Don't have an account? 
+    a#sign-up(href='/users/signup') Sign up
+
+  if user
+    h1 Welcome back #{user.username}
+    a(href="/users/logout") Log out
+  else
+    form(method="POST", action="/users/login")
+      .form-group
+        label(for="username") Username
+        input.form-control(type='text', id='username', placeholder="Enter your username", name="username", required)
+
+      .form-group
+        label(for="password") Password
+        input.form-control(type='password', id='password', placeholder="Enter your password", name="password", required)
+      
+      button.btn.btn-primary(type="submit") Log in

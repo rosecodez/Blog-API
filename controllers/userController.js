@@ -2,9 +2,9 @@ const User = require("../models/user");
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
-const session = require("express-session");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
+const mongoose = require("mongoose");
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -79,19 +79,6 @@ const getAllUsers = async (req, res, next) => {
   }
 };
 
-// Get a specific user by id
-const getUserById = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.params.userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    res.json(user);
-  } catch (err) {
-    next(err);
-  }
-};
-
 // Create a new user
 const createUser = async (req, res, next) => {
   try {
@@ -143,9 +130,10 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
-const signupUser = async (req, res, next) => {
-  res.render("signup");
-};
+const signupUser = asyncHandler(async (req, res, next) => {
+  res.render("signup-form");
+});
+
 const signupUserPost = [
   body("username", "Username must be specified and at least 6 characters long")
     .trim()
@@ -158,18 +146,16 @@ const signupUserPost = [
 
   asyncHandler(async (req, res, next) => {
     const errors = validationResult(req);
-
     if (!errors.isEmpty()) {
       return res.status(400).render("signup", {
         errors: errors.array(),
         user: req.body,
       });
     }
-
     try {
       const existingUser = await User.findOne({ username: req.body.username });
       if (existingUser) {
-        return res.status(400).render("signup", {
+        return res.status(400).render("signup-form", {
           errors: [{ msg: "Username already taken" }],
           user: req.body,
         });
@@ -188,16 +174,18 @@ const signupUserPost = [
     }
   }),
 ];
-const loginUser = (req, res) => {
-  res.render("login");
-};
+
+const loginUser = asyncHandler(async (req, res) => {
+  res.render("login-form");
+});
 
 const loginUserPost = [
   passport.authenticate("local", {
     successRedirect: "/",
-    failureRedirect: "/login",
+    failureRedirect: "/users/login",
   }),
 ];
+
 const logoutUser = asyncHandler(async (req, res, next) => {
   req.logout(function (err) {
     if (err) {
@@ -210,7 +198,6 @@ const logoutUser = asyncHandler(async (req, res, next) => {
 module.exports = {
   addUsers,
   getAllUsers,
-  getUserById,
   createUser,
   updateUser,
   deleteUser,
@@ -218,6 +205,5 @@ module.exports = {
   signupUserPost,
   loginUser,
   loginUserPost,
-  logoutUser,
   logoutUser,
 };

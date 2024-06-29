@@ -3,12 +3,12 @@ extends layout
 block content
   br
   h6 Already have an account? 
-    a#log-in(href='/login') Log in
+    a#log-in(href='/users/login') Log in
     br
     br
   h5 Sign up
   br
-  form(method="POST", action="/signup")
+  form(method="POST", action="/users/signup")
         div.h5.sign-up
             label.form-label(for="username") Username
             input.form-control#username(type='text', placeholder="Username", name="username", value=(user && user.username) ? user.username : '')

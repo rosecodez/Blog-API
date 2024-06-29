@@ -5,9 +5,6 @@ const userController = require("../controllers/userController");
 // GET all users
 router.get("/", userController.getAllUsers);
 
-// GET a specific user by id
-router.get("/:userId", userController.getUserById);
-
 // POST create a new user
 router.post("/createUser", userController.createUser);
 
@@ -25,4 +22,5 @@ router.get("/login", userController.loginUser);
 router.post("/login", userController.loginUserPost);
 
 router.post("/logout", userController.logoutUser);
-module.exports = express.Router;
+
+module.exports = router;

@@ -10,7 +10,6 @@ const passport = require("passport");
 const { addUsers } = require("./controllers/userController");
 const { addComments } = require("./controllers/commentController");
 const { addPosts } = require("./controllers/postController");
-const userController = require("./controllers/userController");
 
 require("dotenv").config();
 
@@ -58,14 +57,6 @@ app.use("/posts", postsRouter);
 app.use("/posts", commentsRouter);
 app.use(passport.initialize());
 app.use(passport.session());
-
-app.get("/signup", userController.signupUser);
-app.post("/signup", userController.signupUserPost);
-
-app.get("/login", userController.loginUser);
-app.post("/login", userController.loginUserPost);
-
-app.post("/logout", userController.logoutUser);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
