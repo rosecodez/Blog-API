@@ -55,8 +55,6 @@ const getAllPosts = async (req, res) => {
   } catch (err) {
     next(err);
   }
-
-  render("posts_page");
 };
 
 // Get a specific post by id

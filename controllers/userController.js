@@ -2,6 +2,44 @@ const User = require("../models/user");
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
+const session = require("express-session");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
+
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      const user = await User.findOne({ username });
+      if (!user) {
+        return done(null, false, {
+          message: "Incorrect username or password.",
+        });
+      }
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return done(null, false, {
+          message: "Incorrect username or password.",
+        });
+      }
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  })
+);
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+});
 
 async function addUsers() {
   let users = [
@@ -105,6 +143,70 @@ const deleteUser = async (req, res, next) => {
   }
 };
 
+const signupUser = async (req, res, next) => {
+  res.render("signup");
+};
+const signupUserPost = [
+  body("username", "Username must be specified and at least 6 characters long")
+    .trim()
+    .isLength({ min: 9 })
+    .escape(),
+  body("password", "Password must be specified and at least 10 characters long")
+    .trim()
+    .isLength({ min: 10 })
+    .escape(),
+
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).render("signup", {
+        errors: errors.array(),
+        user: req.body,
+      });
+    }
+
+    try {
+      const existingUser = await User.findOne({ username: req.body.username });
+      if (existingUser) {
+        return res.status(400).render("signup", {
+          errors: [{ msg: "Username already taken" }],
+          user: req.body,
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+      const user = new User({
+        username: req.body.username,
+        password: hashedPassword,
+      });
+
+      await user.save();
+      res.redirect("/");
+    } catch (err) {
+      next(err);
+    }
+  }),
+];
+const loginUser = (req, res) => {
+  res.render("login");
+};
+
+const loginUserPost = [
+  passport.authenticate("local", {
+    successRedirect: "/",
+    failureRedirect: "/login",
+  }),
+];
+const logoutUser = asyncHandler(async (req, res, next) => {
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.redirect("/login");
+  });
+});
+
 module.exports = {
   addUsers,
   getAllUsers,
@@ -112,4 +214,10 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
+  signupUser,
+  signupUserPost,
+  loginUser,
+  loginUserPost,
+  logoutUser,
+  logoutUser,
 };

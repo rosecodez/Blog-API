@@ -17,4 +17,12 @@ router.put("/:userId", userController.updateUser);
 // DELETE a user by id
 router.delete("/:userId", userController.deleteUser);
 
-module.exports = router;
+// signup, login
+router.get("/signup", userController.signupUser);
+router.post("/signup", userController.signupUserPost);
+
+router.get("/login", userController.loginUser);
+router.post("/login", userController.loginUserPost);
+
+router.post("/logout", userController.logoutUser);
+module.exports = express.Router;
