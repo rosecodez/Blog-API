@@ -39,7 +39,7 @@ passport.deserializeUser(async (id, done) => {
     }
     done(null, user);
   } catch (err) {
-    done(err); // Pass the error to the done callback
+    done(err);
   }
 });
 
@@ -194,7 +194,7 @@ const logoutUser = asyncHandler(async (req, res, next) => {
     if (err) {
       return next(err);
     }
-    res.redirect("/users/login");
+    res.redirect("/");
   });
 });
 

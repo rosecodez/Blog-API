@@ -1,3 +1,5 @@
+const { DateTime } = luxon;
+
 function displayPosts(array) {
   const posts = document.getElementById("posts");
   array.forEach((post) => {
@@ -17,28 +19,35 @@ function displayPosts(array) {
     postContainer.appendChild(timestamp);
 
     const published = document.createElement("p");
-    published.setAttribute("id", "pusblished");
+    published.setAttribute("id", "published");
     postContainer.appendChild(published);
 
     title.textContent = post.title;
     text.textContent = post.text;
-    timestamp.textContent = post.timestamp;
 
-    posts.append(postContainer);
+    if (post.timestamp) {
+      timestamp.textContent = DateTime.fromISO(post.timestamp).toLocaleString(
+        DateTime.DATE_MED
+      );
+    } else {
+      console.warn("Post has no timestamp:", post);
+    }
+
+    posts.appendChild(postContainer);
   });
 }
-Promise.all([
-  fetch("http://localhost:3000/posts", { mode: "cors" })
-    .then(function (response) {
-      return response.json();
-    })
-    .then(function (data) {
-      console.log("Data:", data);
-      let posts = [];
-      posts.push(data);
-      displayPosts(data);
-    })
-    .catch(function (error) {
-      console.error("Fetch error:", error);
-    }),
-]);
+
+fetch("http://localhost:3000/posts", { mode: "cors" })
+  .then(function (response) {
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    return response.json();
+  })
+  .then(function (data) {
+    console.log("Data:", data);
+    displayPosts(data);
+  })
+  .catch(function (error) {
+    console.error("Fetch error:", error);
+  });
