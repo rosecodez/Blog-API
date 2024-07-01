@@ -194,7 +194,7 @@ const logoutUser = asyncHandler(async (req, res, next) => {
     if (err) {
       return next(err);
     }
-    res.redirect("/login");
+    res.redirect("/users/login");
   });
 });
 

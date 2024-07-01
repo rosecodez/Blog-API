@@ -1,7 +1,9 @@
 extends layout
 
 block content
-  h3 Hello, #{user.username}!
-  br
-  h4 Your profile
-  a.user-details-links(href='/users/logout') Log out
+  if user
+    h3 Hello, #{user.username}!
+    a.user-details-links(href='/users/logout') Log out
+  else
+    h3 You are not logged in.
+    a.user-details-links(href='/users/login') Log in

@@ -21,15 +21,6 @@ const commentsRouter = require("./routes/commentsRouter");
 
 const app = express();
 
-app.use((req, res, next) => {
-  res.locals.user = req.user;
-  next();
-});
-
-// view engine setup
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "pug");
-
 mongoose.set("strictQuery", false);
 const mongoDB = process.env.MONGODB_URI;
 mongoose
@@ -60,10 +51,20 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use((req, res, next) => {
+  console.log("Current user:", req.user);
+  res.locals.user = req.user;
+  next();
+});
+
+// view engine setup
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "pug");
+
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/posts", postsRouter);
-app.use("/posts", commentsRouter);
+app.use("/comments", commentsRouter);
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
