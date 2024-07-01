@@ -2,8 +2,30 @@ const User = require("../models/user");
 const asyncHandler = require("express-async-handler");
 const { body, validationResult } = require("express-validator");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
+const JwtStrategy = require("passport-jwt").Strategy;
+const { ExtractJwt } = require("passport-jwt");
+
+require("dotenv").config();
+
+passport.serializeUser((user, done) => {
+  done(null, user.id);
+});
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await User.findById(id);
+    done(null, user);
+  } catch (err) {
+    done(err);
+  }
+});
+
+const jwtOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.JWT_SECRET,
+};
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -27,21 +49,27 @@ passport.use(
   })
 );
 
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    if (!user) {
-      return done(new Error("User not found"));
+passport.use(
+  new JwtStrategy(jwtOptions, async (jwtPayload, done) => {
+    try {
+      const user = await User.findById(jwtPayload.id);
+      if (!user) {
+        return done(null, false);
+      }
+      return done(null, user);
+    } catch (err) {
+      return done(err, false);
     }
-    done(null, user);
-  } catch (err) {
-    done(err);
-  }
-});
+  })
+);
+
+async function generateToken(user) {
+  const payload = {
+    id: user.id,
+    username: user.username,
+  };
+  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+}
 
 async function addUsers() {
   let users = [
@@ -72,36 +100,38 @@ async function addUsers() {
 }
 
 // Get all users
-const getAllUsers = async (req, res, next) => {
+const getAllUsers = asyncHandler(async (req, res, next) => {
   try {
     const users = await User.find();
     res.json(users);
   } catch (err) {
     next(err);
   }
-};
+});
 
 // Create a new user
-const createUser = async (req, res, next) => {
+const createUser = asyncHandler(async (req, res, next) => {
   try {
-    const hashedPassword = await bcrypt.hash("securepassword123", 10);
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-      username: "tyrionlannister",
+      username,
       password: hashedPassword,
       author: false,
     });
 
     await newUser.save();
 
-    res.status(201).json(newUser);
+    const token = await generateToken(newUser);
+    res.status(201).json({ user: newUser, token });
   } catch (err) {
     next(err);
   }
-};
+});
 
 // Update a user by id
-const updateUser = async (req, res, next) => {
+const updateUser = asyncHandler(async (req, res, next) => {
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
@@ -115,10 +145,10 @@ const updateUser = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+});
 
 // Delete a user by id
-const deleteUser = async (req, res, next) => {
+const deleteUser = asyncHandler(async (req, res, next) => {
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
@@ -130,7 +160,7 @@ const deleteUser = async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-};
+});
 
 const signupUser = asyncHandler(async (req, res, next) => {
   res.render("signup-form");
