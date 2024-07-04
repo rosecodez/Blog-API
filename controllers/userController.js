@@ -10,9 +10,11 @@ const { ExtractJwt } = require("passport-jwt");
 
 require("dotenv").config();
 
+// Passport configuration
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
+
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await User.findById(id);
@@ -63,13 +65,15 @@ passport.use(
   })
 );
 
-async function generateToken(user) {
+function generateToken(user) {
   const payload = {
     id: user.id,
     username: user.username,
+    author: user.author,
   };
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
 }
+const authMiddleware = passport.authenticate("jwt", { session: false });
 
 async function addUsers() {
   let users = [
@@ -123,7 +127,7 @@ const createUser = asyncHandler(async (req, res, next) => {
 
     await newUser.save();
 
-    const token = await generateToken(newUser);
+    const token = generateToken(newUser);
     res.status(201).json({ user: newUser, token });
   } catch (err) {
     next(err);
@@ -208,14 +212,21 @@ const signupUserPost = [
 ];
 
 const loginUser = asyncHandler(async (req, res) => {
-  console.log("Current user:", req.user);
   res.render("login-form", { user: req.user });
 });
 
 const loginUserPost = [
   passport.authenticate("local", {
-    successRedirect: "/users/user-details",
     failureRedirect: "/users/login",
+  }),
+  asyncHandler(async (req, res, next) => {
+    try {
+      const token = generateToken(req.user);
+      res.json({ token });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
   }),
 ];
 
@@ -230,7 +241,8 @@ const logoutUser = asyncHandler(async (req, res, next) => {
 
 const userDetails = asyncHandler(async (req, res, next) => {
   if (req.isAuthenticated()) {
-    res.render("user-details", { user: req.user });
+    const token = generateToken(req.user);
+    res.render("user-details", { user: req.user, token });
   } else {
     res.redirect("/users/login");
   }
@@ -248,4 +260,5 @@ module.exports = {
   loginUserPost,
   logoutUser,
   userDetails,
+  authMiddleware,
 };

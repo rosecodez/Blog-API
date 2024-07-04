@@ -45,7 +45,6 @@ fetch("http://localhost:3000/posts", { mode: "cors" })
     return response.json();
   })
   .then(function (data) {
-    console.log("Data:", data);
     displayPosts(data);
   })
   .catch(function (error) {

@@ -4,6 +4,9 @@ block content
   if user
     h3 Hello, #{user.username}!
     a.user-details-links(href='/users/logout') Log out
+    br
+    if user.username === "Author"
+      a.user-details-links(href='/users/new-post') New post
   else
     h3 You are not logged in.
     a.user-details-links(href='/users/login') Log in
