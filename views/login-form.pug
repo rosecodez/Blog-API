@@ -1,38 +1,15 @@
 extends layout
 
 block content
+  h6 Don't have an account?
+  a#log-in(href='/users/signup') Sign up
   h2 Login
-  form#loginForm(method="POST", action="/users/login")
-    .form-group
-      label.form-label(for="username") Username
-      input.form-control(type="text", id="username", name="username", required)
-    .form-group
-      label(for="password") Password
-      input.form-control(type="password", id="password", name="password", required)
-    button.btn.btn-primary(type="submit") Log in
+    form#loginForm(method="POST", action="/users/login")
+      .form-group
+        label.form-label(for="username") Username
+        input.form-control(type="text", id="username", name="username", required)
+      .form-group
+        label(for="password") Password
+        input.form-control(type="password", id="password", name="password", required)
+      button.btn.btn-primary(type="submit") Log in
 
-  script.
-    document.getElementById("loginForm").addEventListener("submit", async function(event) {
-      event.preventDefault();
-      const username = document.getElementById("username").value;
-      const password = document.getElementById("password").value;
-
-      try {
-        const response = await fetch("/users/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ username, password })
-        });
-        if (!response.ok) {
-          throw new Error("Login failed");
-        }
-        const data = await response.json();
-
-        localStorage.setItem("token", data.token);
-        window.location.href = "/users/user-details";
-      } catch (error) {
-        console.error("Login error:", error);
-      }
-    });

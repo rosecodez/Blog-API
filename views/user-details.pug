@@ -3,10 +3,24 @@ extends layout
 block content
   if user
     h3 Hello, #{user.username}!
-    a.user-details-links(href='/users/logout') Log out
+    a.user-details-links(id = "logoutButton", href='/users/logout') Log out
     br
     if user.username === "Author"
       a.user-details-links(href='/users/new-post') New post
   else
     h3 You are not logged in.
     a.user-details-links(href='/users/login') Log in
+
+  script.
+    const token = "#{token}";
+    if (token) {
+      console.log("Token retrieved:", token);
+      localStorage.setItem("token", token);
+    } else {
+      console.error("No token found.");
+    }
+
+    const logoutButton = document.getElementById("logoutButton");
+    logoutButton.addEventListener("click", () => {
+      localStorage.removeItem("token");
+    });

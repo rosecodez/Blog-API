@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
-const { authMiddleware } = require("../controllers/userController");
+const verifyToken = require("../middleware/authMiddleware");
 
 // GET all users
 router.get("/", userController.getAllUsers);
@@ -24,8 +24,7 @@ router.get("/login", userController.loginUser);
 router.post("/login", userController.loginUserPost);
 
 // display user details (protected route)
-router.get("/user-details", userController.userDetails);
-
+router.get("/user-details", verifyToken, userController.userDetails);
 // logout
 router.get("/logout", userController.logoutUser);
 

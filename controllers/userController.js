@@ -7,6 +7,7 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const JwtStrategy = require("passport-jwt").Strategy;
 const { ExtractJwt } = require("passport-jwt");
+const verifyToken = require("../middleware/authMiddleware");
 
 require("dotenv").config();
 
@@ -66,13 +67,15 @@ passport.use(
 );
 
 function generateToken(user) {
-  const payload = {
-    id: user.id,
-    username: user.username,
-    author: user.author,
-  };
-  return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+  const payload = { id: user.id, username: user.username, author: user.author };
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+  console.log("Token Payload:", payload);
+  console.log("Generated Token:", token);
+
+  return token;
 }
+
 const authMiddleware = passport.authenticate("jwt", { session: false });
 
 async function addUsers() {
@@ -130,6 +133,7 @@ const createUser = asyncHandler(async (req, res, next) => {
     const token = generateToken(newUser);
     res.status(201).json({ user: newUser, token });
   } catch (err) {
+    console.log(`Error creating user: ${err.message}`);
     next(err);
   }
 });
@@ -142,8 +146,8 @@ const updateUser = asyncHandler(async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    user.username = "tyrion";
-    user.author = false;
+    user.username = req.body.username;
+    user.author = req.body.author;
     await user.save();
     res.json(user);
   } catch (err) {
@@ -166,10 +170,12 @@ const deleteUser = asyncHandler(async (req, res, next) => {
   }
 });
 
+// Signup user get
 const signupUser = asyncHandler(async (req, res, next) => {
   res.render("signup-form");
 });
 
+// Signup user post
 const signupUserPost = [
   body("username", "Username must be specified and at least 6 characters long")
     .trim()
@@ -188,6 +194,7 @@ const signupUserPost = [
         user: req.body,
       });
     }
+
     try {
       const existingUser = await User.findOne({ username: req.body.username });
       if (existingUser) {
@@ -204,32 +211,59 @@ const signupUserPost = [
       });
 
       await user.save();
-      res.redirect("/");
-    } catch (err) {
-      next(err);
+      res.status(201).json({ message: "User registered successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Registration failed" });
     }
   }),
 ];
 
+// Login user get
 const loginUser = asyncHandler(async (req, res) => {
   res.render("login-form", { user: req.user });
 });
 
+// Login user post
 const loginUserPost = [
-  passport.authenticate("local", {
-    failureRedirect: "/users/login",
-  }),
+  body("username").trim().isLength({ min: 6 }).escape(),
+  body("password").trim().isLength({ min: 10 }).escape(),
+
   asyncHandler(async (req, res, next) => {
-    try {
-      const token = generateToken(req.user);
-      res.json({ token });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Server error" });
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).render("login-form", {
+        errors: errors.array(),
+        user: req.body,
+      });
     }
+
+    passport.authenticate(
+      "local",
+      { session: false },
+      async (err, user, info) => {
+        if (err || !user) {
+          return res.status(400).json({ error: info.message });
+        }
+
+        req.login(user, { session: false }, async (err) => {
+          if (err) {
+            return res.status(500).json({ error: "Login failed" });
+          }
+
+          const token = generateToken(user);
+          console.log("Generated Token:", token);
+
+          res.render("user-details", {
+            user: user,
+            token: token,
+          });
+        });
+      }
+    )(req, res, next);
   }),
 ];
 
+// Logout user
 const logoutUser = asyncHandler(async (req, res, next) => {
   req.logout(function (err) {
     if (err) {
@@ -239,14 +273,25 @@ const logoutUser = asyncHandler(async (req, res, next) => {
   });
 });
 
-const userDetails = asyncHandler(async (req, res, next) => {
-  if (req.isAuthenticated()) {
-    const token = generateToken(req.user);
-    res.render("user-details", { user: req.user, token });
-  } else {
-    res.redirect("/users/login");
-  }
-});
+const userDetails = [
+  verifyToken,
+  asyncHandler(async (req, res, next) => {
+    const token = req.headers.authorization.split(" ")[1];
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Decoded Payload:", decoded);
+
+      if (req.isAuthenticated()) {
+        res.render("user-details", { user: req.user });
+      } else {
+        res.redirect("/users/login");
+      }
+    } catch (err) {
+      console.error("Error decoding token:", err);
+      res.status(403).json({ message: "Unauthorized" });
+    }
+  }),
+];
 
 module.exports = {
   addUsers,
