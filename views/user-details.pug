@@ -3,16 +3,16 @@ extends layout
 block content
   if user
     h3 Hello, #{user.username}!
-    a.user-details-links(id = "logoutButton", href='/users/logout') Log out
+    button#logoutButton(type='button', class='btn btn-primary') Log out
     br
-    if user.username === "Author"
+    if user.author
       a.user-details-links(href='/users/new-post') New post
-  else
-    h3 You are not logged in.
-    a.user-details-links(href='/users/login') Log in
+      br
+
 
   script.
     const token = "#{token}";
+
     if (token) {
       console.log("Token retrieved:", token);
       localStorage.setItem("token", token);
@@ -20,7 +20,53 @@ block content
       console.error("No token found.");
     }
 
+    const fetchUserDetails = () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.error("No token available.");
+        return;
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      fetch('/users/user-details', {
+        method: 'GET',
+        headers: headers
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then(data => console.log('User details:', data))
+      .catch(error => console.error('Error:', error));
+    };
+
+    fetchUserDetails(); 
+
     const logoutButton = document.getElementById("logoutButton");
-    logoutButton.addEventListener("click", () => {
-      localStorage.removeItem("token");
-    });
+    if (logoutButton) {
+      logoutButton.addEventListener("click", () => {
+        localStorage.removeItem("token");
+        window.location.href = "/";
+        fetch('/users/logout', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Logout request failed');
+          }
+          console.log('Logout successful');
+        })
+        .catch(error => {
+          console.error('Logout error:', error);
+        });
+      });
+    }

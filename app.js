@@ -10,7 +10,6 @@ const passport = require("passport");
 const { addUsers } = require("./controllers/userController");
 const { addComments } = require("./controllers/commentController");
 const { addPosts } = require("./controllers/postController");
-const User = require("./models/user");
 
 require("dotenv").config();
 
@@ -35,8 +34,16 @@ mongoose
     console.error("MongoDB connection error:", err);
   });
 
-app.use(cors());
+// Morgan logging setup
 app.use(logger("dev"));
+
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -76,6 +83,8 @@ app.use(function (err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
+
+  console.error(err);
 
   // render the error page
   res.status(err.status || 500);

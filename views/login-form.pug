@@ -1,15 +1,23 @@
 extends layout
 
 block content
-  h6 Don't have an account?
-  a#log-in(href='/users/signup') Sign up
-  h2 Login
-    form#loginForm(method="POST", action="/users/login")
-      .form-group
-        label.form-label(for="username") Username
-        input.form-control(type="text", id="username", name="username", required)
-      .form-group
-        label(for="password") Password
-        input.form-control(type="password", id="password", name="password", required)
-      button.btn.btn-primary(type="submit") Log in
-
+    h1 Log in
+    h6 Don't have an account? 
+        a#sign-up(href='/users/signup') Sign up
+    if user
+        h1 Welcome back #{user.username}
+        a(href="/users/logout") Log out
+    else
+        h1 Please log in
+        form(method="POST", action="/users/login")
+            div.form-group
+                label(for="username") Username
+                input.form-control(type='text', id='username', placeholder="Enter your username", name="username")
+            div.form-group
+                label(for="password") Password
+                input.form-control(type='password', id='password', placeholder="Enter your password", name="password")
+            button.btn.btn-primary(type="submit") Log in
+    if errors && errors.length > 0
+        ul.text-danger
+            each error in errors
+                li= error.msg

@@ -7,9 +7,13 @@ const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const JwtStrategy = require("passport-jwt").Strategy;
 const { ExtractJwt } = require("passport-jwt");
-const verifyToken = require("../middleware/authMiddleware");
 
 require("dotenv").config();
+
+const jwtOptions = {
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+  secretOrKey: process.env.JWT_SECRET,
+};
 
 // Passport configuration
 passport.serializeUser((user, done) => {
@@ -24,11 +28,6 @@ passport.deserializeUser(async (id, done) => {
     done(err);
   }
 });
-
-const jwtOptions = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: process.env.JWT_SECRET,
-};
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {
@@ -55,12 +54,17 @@ passport.use(
 passport.use(
   new JwtStrategy(jwtOptions, async (jwtPayload, done) => {
     try {
+      console.log("JWT Payload:", jwtPayload);
       const user = await User.findById(jwtPayload.id);
-      if (!user) {
+      if (user) {
+        console.log("User found:", user);
+        return done(null, user);
+      } else {
+        console.log("No user found");
         return done(null, false);
       }
-      return done(null, user);
     } catch (err) {
+      console.error("Error fetching user:", err);
       return done(err, false);
     }
   })
@@ -69,17 +73,31 @@ passport.use(
 function generateToken(user) {
   const payload = { id: user.id, username: user.username, author: user.author };
   const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
-
-  console.log("Token Payload:", payload);
   console.log("Generated Token:", token);
-
   return token;
 }
 
-const authMiddleware = passport.authenticate("jwt", { session: false });
+const authMiddleware = (req, res, next) => {
+  passport.authenticate("jwt", { session: false }, (err, user, info) => {
+    if (err) {
+      console.error("Passport authentication error:", err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+    if (!user) {
+      if (info && info.name === "TokenExpiredError") {
+        return res.status(401).json({ error: "Token expired" });
+      }
+      console.log("No user found", info);
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    req.user = user;
+    console.log("Authenticated user:", user);
+    next();
+  })(req, res, next);
+};
 
 async function addUsers() {
-  let users = [
+  const users = [
     {
       username: "author",
       password: await bcrypt.hash("password", 10),
@@ -92,7 +110,7 @@ async function addUsers() {
     },
   ];
 
-  for (let user of users) {
+  for (const user of users) {
     try {
       const existingUser = await User.findOne({ username: user.username });
       if (!existingUser) {
@@ -171,7 +189,7 @@ const deleteUser = asyncHandler(async (req, res, next) => {
 });
 
 // Signup user get
-const signupUser = asyncHandler(async (req, res, next) => {
+const signupUser = asyncHandler((req, res, next) => {
   res.render("signup-form");
 });
 
@@ -219,7 +237,7 @@ const signupUserPost = [
 ];
 
 // Login user get
-const loginUser = asyncHandler(async (req, res) => {
+const loginUser = asyncHandler((req, res) => {
   res.render("login-form", { user: req.user });
 });
 
@@ -251,7 +269,6 @@ const loginUserPost = [
           }
 
           const token = generateToken(user);
-          console.log("Generated Token:", token);
 
           res.render("user-details", {
             user: user,
@@ -265,33 +282,30 @@ const loginUserPost = [
 
 // Logout user
 const logoutUser = asyncHandler(async (req, res, next) => {
-  req.logout(function (err) {
-    if (err) {
-      return next(err);
-    }
-    res.redirect("/");
-  });
+  try {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return next(err);
+      }
+      // Clear session cookie if necessary
+      res.clearCookie("connect.sid");
+      // Respond with a success message or status code
+      res.json({ message: "Logged out successfully" });
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
-const userDetails = [
-  verifyToken,
-  asyncHandler(async (req, res, next) => {
-    const token = req.headers.authorization.split(" ")[1];
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Payload:", decoded);
-
-      if (req.isAuthenticated()) {
-        res.render("user-details", { user: req.user });
-      } else {
-        res.redirect("/users/login");
-      }
-    } catch (err) {
-      console.error("Error decoding token:", err);
-      res.status(403).json({ message: "Unauthorized" });
-    }
-  }),
-];
+const userDetails = (req, res) => {
+  console.log("Current user in userDetails controller:", req.user);
+  if (req.user) {
+    res.json(req.user);
+  } else {
+    res.status(401).json({ message: "Access denied. No user found." });
+  }
+};
 
 module.exports = {
   addUsers,
